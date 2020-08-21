@@ -4,6 +4,7 @@ import fs from 'fs'
 const mockProcess = require('jest-mock-process')
 
 import configurationVault from '../../src/utils/configurationVault'
+import getDefaultCommitContent from '../../src/utils/getDefaultCommitContent'
 import getEmojis from '../../src/utils/getEmojis'
 import isHookCreated from '../../src/utils/isHookCreated'
 import commit from '../../src/commands/commit'
@@ -11,6 +12,7 @@ import guard from '../../src/commands/commit/guard'
 import prompts from '../../src/commands/commit/prompts'
 import * as stubs from './stubs'
 
+jest.mock('../../src/utils/getDefaultCommitContent')
 jest.mock('../../src/utils/getEmojis')
 jest.mock('../../src/utils/isHookCreated')
 jest.mock('../../src/utils/configurationVault')
@@ -118,6 +120,9 @@ describe('commit command', () => {
         getEmojis.mockResolvedValue(stubs.gitmojis)
         mockProcess.mockProcessExit()
         process.argv[3] = stubs.argv
+        getDefaultCommitContent.mockReturnValueOnce(
+          stubs.emptyDefaultCommitContent
+        )
         commit('hook')
       })
 
@@ -142,6 +147,9 @@ describe('commit command', () => {
         getEmojis.mockResolvedValue(stubs.gitmojis)
         mockProcess.mockProcessExit()
         process.argv[3] = stubs.argv
+        getDefaultCommitContent.mockReturnValueOnce(
+          stubs.emptyDefaultCommitContent
+        )
         commit('hook')
       })
 
@@ -159,7 +167,7 @@ describe('commit command', () => {
 
     describe('when receiving a signal interrupt', () => {
       it('should call process.exit(0)', async () => {
-        console.warn  = jest.fn()
+        console.warn = jest.fn()
 
         // mock process.on and process.kill to test registerHookInterruptionHandler
         const processEvents = {}
@@ -179,15 +187,17 @@ describe('commit command', () => {
         mockProcess.mockProcessExit(new Error('SIGINT'))
         process.argv[3] = stubs.argv
 
+        getDefaultCommitContent.mockReturnValueOnce(
+          stubs.emptyDefaultCommitContent
+        )
+
         try {
           await commit('hook')
         } catch (e) {
           expect(e.message).toMatch('SIGINT')
         }
 
-        expect(console.warn).toHaveBeenCalledWith(
-          'gitmoji-cli was interrupted'
-        )
+        expect(console.warn).toHaveBeenCalledWith('gitmoji-cli was interrupted')
         expect(process.exit).toHaveBeenCalledWith(0)
       })
     })
@@ -268,6 +278,22 @@ describe('commit command', () => {
 
       it('should match the array of questions', () => {
         expect(prompts(stubs.gitmojis)).toMatchSnapshot()
+      })
+    })
+
+    describe('with default commit content in hook mode', () => {
+      it('should match the default title and message', () => {
+        getDefaultCommitContent.mockReturnValueOnce(stubs.defaultCommitContent)
+
+        expect(prompts(stubs.gitmojis, 'hook')).toMatchSnapshot()
+      })
+    })
+
+    describe('with default commit content in commit mode', () => {
+      it('should not fill default title and message', () => {
+        getDefaultCommitContent.mockReturnValueOnce(stubs.defaultCommitContent)
+
+        expect(prompts(stubs.gitmojis, 'commit')).toMatchSnapshot()
       })
     })
   })

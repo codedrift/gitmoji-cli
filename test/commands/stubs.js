@@ -42,3 +42,10 @@ export const clientCommitAnswersWithScope = {
 export const commitResult = 'Commit result'
 
 export const argv = 'commit'
+
+export const emptyDefaultCommitContent = { title: '', message: '' }
+
+export const defaultCommitContent = {
+  title: 'commit title',
+  message: 'commit message'
+}

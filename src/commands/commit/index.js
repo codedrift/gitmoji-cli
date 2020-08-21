@@ -10,7 +10,7 @@ const commit = (mode: 'client' | 'hook') => {
   if (mode === 'hook') registerHookInterruptionHandler()
 
   return getEmojis()
-    .then((gitmojis) => prompts(gitmojis))
+    .then((gitmojis) => prompts(gitmojis, mode))
     .then((questions) => {
       inquirer.prompt(questions).then((answers) => {
         if (mode === 'hook') return withHook(answers)
