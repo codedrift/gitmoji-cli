@@ -1,16 +1,14 @@
 // @flow
-import execa from 'execa'
-import fs from 'fs'
 import chalk from 'chalk'
-
-import isHookCreated from '../../../utils/isHookCreated'
+import execa from 'execa'
 import configurationVault from '../../../utils/configurationVault'
-import { type Answers } from '../prompts'
+import isHookCreated from '../../../utils/isHookCreated'
+import { Answers } from '../prompts'
 
 const withClient = async (answers: Answers) => {
   try {
     const scope = answers.scope ? `(${answers.scope}): ` : ''
-    const title = `${answers.gitmoji} ${scope}${answers.title}`
+    const title = `'${answers.gitmoji} ${scope}${answers.title}'`
     const isSigned = configurationVault.getSignedCommit() ? ['-S'] : []
 
     if (await isHookCreated()) {
@@ -24,20 +22,25 @@ const withClient = async (answers: Answers) => {
       )
     }
 
-    if (configurationVault.getAutoAdd()) await execa('git', ['add', '.'])
+    const messageArgs = answers.message ? ['-m', `'${answers.message}'`] : []
 
-    const { stdout } = await execa('git', [
-      'commit',
-      ...isSigned,
-      '-m',
-      title,
-      '-m',
-      answers.message
-    ])
+    const args = ['commit', ...isSigned, '-m', title, ...messageArgs]
+
+    const { stdout } = await execa('git', args, {
+      stdio: 'inherit',
+      shell: true
+    })
 
     console.log(stdout)
   } catch (error) {
-    console.error(error)
+    // console.error(error)
+    const { exitCode, command } = error
+    console.log('')
+    console.log(
+      chalk.bold('Commit failed with code'),
+      chalk.bold(chalk.red(exitCode))
+    )
+    console.log(chalk.bold('Command:'), chalk.cyan(command))
   }
 }
 
